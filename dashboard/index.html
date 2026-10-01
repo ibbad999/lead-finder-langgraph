@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lead Finder — Live Run</title>
+<style>
+  :root {
+    --bg-a: #fff6e0;
+    --bg-b: #ffe0b2;
+    --glass: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.8);
+    --glass-shadow: rgba(191, 120, 15, 0.18);
+    --text-primary: #2b1d0e;
+    --text-secondary: #6b5636;
+    --muted: #9c8763;
+    --accent: #f5a623;
+    --accent-deep: #e08600;
+    --good: #0ca30c;
+    --critical: #d03b3b;
+    --warning: #b8860b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+  }
+  body {
+    background: radial-gradient(circle at 15% 10%, #fffdf5 0%, var(--bg-a) 35%, var(--bg-b) 100%);
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p { color: var(--text-secondary); font-size: 14px; margin: 0; }
+
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+  }
+
+  .setup {
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr 1fr auto;
+    gap: 14px;
+    align-items: end;
+  }
+  @media (max-width: 780px) {
+    .setup { grid-template-columns: 1fr 1fr; }
+    .setup .run-btn-cell { grid-column: 1 / -1; }
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(180, 140, 60, 0.35);
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+  }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2); }
+
+  .run-btn {
+    padding: 11px 22px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color: #fff;
+    font-weight: 650;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(224, 134, 0, 0.35);
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+  .run-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .agents {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 780px) { .agents { grid-template-columns: 1fr; } }
+
+  .agent-card {
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .agent-card .name {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .agent-card .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .agent-card.active .dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.6);
+    animation: pulse 1.4s infinite;
+  }
+  .agent-card.done .dot { background: var(--good); }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(245, 166, 35, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+  }
+  .agent-card .detail {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    min-height: 32px;
+    line-height: 1.4;
+  }
+  .agent-card .badge {
+    position: absolute;
+    top: 14px; right: 16px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .agent-card.active .badge { color: var(--accent-deep); }
+  .agent-card.done .badge { color: var(--good); }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(180, 140, 60, 0.18);
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+    transition: width 0.3s ease;
+  }
+
+  .feed {
+    padding: 18px 22px;
+    margin-bottom: 20px;
+  }
+  .feed h2 { font-size: 13px; font-weight: 700; margin: 0 0 12px; color: var(--text-secondary); }
+  .feed-list {
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .feed-item {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.45);
+  }
+  .feed-item .tag {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    height: fit-content;
+    white-space: nowrap;
+  }
+  .tag.researcher { background: rgba(245, 166, 35, 0.18); color: var(--accent-deep); }
+  .tag.personalizer { background: rgba(96, 143, 214, 0.18); color: #3a6bb0; }
+  .tag.critic-approved { background: rgba(12, 163, 12, 0.15); color: var(--good); }
+  .tag.critic-revise { background: rgba(208, 59, 59, 0.15); color: var(--critical); }
+  .feed-empty { color: var(--muted); font-size: 13px; }
+
+  .results { padding: 22px 26px; }
+  .results h2 { font-size: 15px; font-weight: 700; margin: 0 0 16px; }
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat-tile {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-tile .value { font-size: 24px; font-weight: 700; }
+  .stat-tile .label { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .result-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .result-links a {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 650;
+    padding: 9px 16px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color: #fff;
+  }
+  .result-links a.secondary {
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--text-primary);
+    border: 1px solid rgba(180, 140, 60, 0.35);
+  }
+
+  .error-banner {
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    background: rgba(208, 59, 59, 0.12);
+    border: 1px solid rgba(208, 59, 59, 0.35);
+    border-radius: 14px;
+    color: var(--critical);
+    font-size: 13.5px;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lead Finder — Live Run</h1>
+    <p>Researcher &rarr; Personalizer &rarr; Critic, running for real. Watch it work below.</p>
+  </header>
+
+  <div id="errorBanner" class="error-banner hidden"></div>
+
+  <form id="setupForm" class="glass setup">
+    <div class="field">
+      <label for="query">Business type</label>
+      <input id="query" name="query" placeholder="e.g. tailors" required />
+    </div>
+    <div class="field">
+      <label for="location">Location</label>
+      <input id="location" name="location" placeholder="e.g. Islamabad, Pakistan" required />
+    </div>
+    <div class="field">
+      <label for="limit">Leads</label>
+      <input id="limit" name="limit" type="number" min="1" max="20" value="5" />
+    </div>
+    <div class="field">
+      <label for="maxRevisions">Max revisions</label>
+      <input id="maxRevisions" name="maxRevisions" type="number" min="0" max="5" value="2" />
+    </div>
+    <div class="run-btn-cell">
+      <button type="submit" id="runBtn" class="run-btn">Run pipeline</button>
+    </div>
+  </form>
+
+  <div class="agents">
+    <div class="agent-card glass" id="agent-researcher">
+      <span class="badge">idle</span>
+      <div class="name"><span class="dot"></span> Researcher</div>
+      <div class="detail">Waiting to start.</div>
+    </div>
+    <div class="agent-card glass" id="agent-personalizer">
+      <span class="badge">idle</span>
+      <div class="name"><span class="dot"></span> Personalizer</div>
+      <div class="detail">Waiting to start.</div>
+    </div>
+    <div class="agent-card glass" id="agent-critic">
+      <span class="badge">idle</span>
+      <div class="name"><span class="dot"></span> Critic</div>
+      <div class="detail">Waiting to start.</div>
+    </div>
+  </div>
+
+  <div class="progress-row glass">
+    <span id="progressLabel">No run yet</span>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="feed glass">
+    <h2>Live activity</h2>
+    <div class="feed-list" id="feedList">
+      <div class="feed-empty">Nothing yet — start a run above.</div>
+    </div>
+  </div>
+
+  <div class="results glass hidden" id="resultsPanel">
+    <h2>Run complete</h2>
+    <div class="stat-row" id="statRow"></div>
+    <div class="result-links" id="resultLinks"></div>
+  </div>
+</div>
+
+<script>
+const agentEls = {
+  researcher: document.getElementById('agent-researcher'),
+  personalizer: document.getElementById('agent-personalizer'),
+  critic: document.getElementById('agent-critic'),
+};
+const feedList = document.getElementById('feedList');
+const progressLabel = document.getElementById('progressLabel');
+const progressFill = document.getElementById('progressFill');
+const resultsPanel = document.getElementById('resultsPanel');
+const statRow = document.getElementById('statRow');
+const resultLinks = document.getElementById('resultLinks');
+const runBtn = document.getElementById('runBtn');
+const errorBanner = document.getElementById('errorBanner');
+
+let researchTotal = 0;
+
+function setAgentState(agent, state, detail) {
+  const el = agentEls[agent];
+  if (!el) return;
+  el.classList.remove('active', 'done');
+  if (state) el.classList.add(state);
+  const badge = el.querySelector('.badge');
+  badge.textContent = state === 'active' ? 'working' : state === 'done' ? 'done' : 'idle';
+  if (detail !== undefined) el.querySelector('.detail').textContent = detail;
+}
+
+function resetUI() {
+  Object.keys(agentEls).forEach((a) => setAgentState(a, null, 'Waiting to start.'));
+  feedList.innerHTML = '';
+  progressLabel.textContent = 'Starting...';
+  progressFill.style.width = '0%';
+  resultsPanel.classList.add('hidden');
+  errorBanner.classList.add('hidden');
+  researchTotal = 0;
+}
+
+function addFeedItem(tagClass, tagText, text) {
+  if (feedList.querySelector('.feed-empty')) feedList.innerHTML = '';
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  const tag = document.createElement('span');
+  tag.className = 'tag ' + tagClass;
+  tag.textContent = tagText;
+  const body = document.createElement('span');
+  body.textContent = text;
+  item.appendChild(tag);
+  item.appendChild(body);
+  feedList.appendChild(item);
+  feedList.scrollTop = feedList.scrollHeight;
+}
+
+function handleEvent(evt) {
+  switch (evt.type) {
+    case 'run_started':
+      resetUI();
+      progressLabel.textContent = `Searching for "${evt.query}" in ${evt.location}...`;
+      addFeedItem('researcher', 'setup', `Starting run: "${evt.query}" in ${evt.location}, up to ${evt.limit} leads`);
+      break;
+
+    case 'agent_active':
+      setAgentState(evt.agent, 'active', evt.detail);
+      break;
+
+    case 'agent_idle':
+      setAgentState(evt.agent, 'done', undefined);
+      break;
+
+    case 'researcher_found':
+      researchTotal = evt.count;
+      progressLabel.textContent = `Found ${evt.count} businesses. Checking each one...`;
+      addFeedItem('researcher', 'researcher', `Found ${evt.count} businesses`);
+      break;
+
+    case 'researcher_checking':
+      progressLabel.textContent = `Researching ${evt.index}/${evt.total}: ${evt.name}`;
+      progressFill.style.width = `${(evt.index / evt.total) * 33}%`;
+      break;
+
+    case 'researcher_signal':
+      addFeedItem('researcher', 'researcher', `${evt.name}: found a signal — "${evt.signal}"`);
+      break;
+
+    case 'researcher_no_signal':
+      addFeedItem('researcher', 'researcher', `${evt.name}: no specific signal, will use category fallback`);
+      break;
+
+    case 'researcher_no_website':
+      addFeedItem('researcher', 'researcher', `${evt.name}: no website listed`);
+      break;
+
+    case 'personalizer_drafted':
+      addFeedItem('personalizer', 'personalizer', `${evt.name}: drafted "${evt.subject}"`);
+      break;
+
+    case 'critic_verdict':
+      if (evt.verdict === 'approved') {
+        addFeedItem('critic-approved', 'approved', `${evt.name}: approved`);
+      } else {
+        addFeedItem('critic-revise', 'revise', `${evt.name}: sent back — ${evt.feedback}`);
+      }
+      break;
+
+    case 'run_complete': {
+      Object.keys(agentEls).forEach((a) => setAgentState(a, 'done', undefined));
+      progressLabel.textContent = 'Done.';
+      progressFill.style.width = '100%';
+      const rate = evt.total ? Math.round((evt.approved / evt.total) * 100) : 0;
+      statRow.innerHTML = `
+        <div class="stat-tile"><div class="value">${evt.total}</div><div class="label">Processed</div></div>
+        <div class="stat-tile"><div class="value">${evt.approved}</div><div class="label">Approved</div></div>
+        <div class="stat-tile"><div class="value">${rate}%</div><div class="label">Approval rate</div></div>
+      `;
+      resultLinks.innerHTML = `
+        <a href="${evt.report_url}" target="_blank">Open report</a>
+        <a class="secondary" href="${evt.csv_url}" target="_blank">Open CSV</a>
+      `;
+      resultsPanel.classList.remove('hidden');
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run pipeline';
+      break;
+    }
+
+    case 'run_error':
+      errorBanner.textContent = 'Run failed: ' + evt.message;
+      errorBanner.classList.remove('hidden');
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run pipeline';
+      break;
+  }
+}
+
+const source = new EventSource('/api/stream');
+source.onmessage = (e) => {
+  try {
+    handleEvent(JSON.parse(e.data));
+  } catch (err) {
+    // keepalive comments have no data payload we care about
+  }
+};
+
+document.getElementById('setupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const query = document.getElementById('query').value.trim();
+  const location = document.getElementById('location').value.trim();
+  const limit = parseInt(document.getElementById('limit').value, 10) || 5;
+  const maxRevisions = parseInt(document.getElementById('maxRevisions').value, 10) || 2;
+
+  runBtn.disabled = true;
+  runBtn.textContent = 'Running...';
+  errorBanner.classList.add('hidden');
+
+  try {
+    const resp = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, location, limit, max_revisions: maxRevisions }),
+    });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      errorBanner.textContent = body.error || `Request failed (${resp.status})`;
+      errorBanner.classList.remove('hidden');
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run pipeline';
+    }
+  } catch (err) {
+    errorBanner.textContent = 'Could not reach the server: ' + err.message;
+    errorBanner.classList.remove('hidden');
+    runBtn.disabled = false;
+    runBtn.textContent = 'Run pipeline';
+  }
+});
+</script>
+</body>
+</html>
