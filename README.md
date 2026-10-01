@@ -69,7 +69,7 @@ than a straight-line pipeline.
    python run.py --query "real estate agencies" --location "Lahore, Pakistan" --limit 5
    ```
 
-4. Check `output/leads.csv` for the results — reviewed drafts, not auto-sent.
+4. Check `output/leads.csv` for the results - reviewed drafts, not auto-sent.
 
 ## Notes on cost
 
