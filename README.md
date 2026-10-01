@@ -60,8 +60,8 @@ than a straight-line pipeline.
    cp .env.example .env
    ```
 
-   - `GOOGLE_API_KEY` — Gemini API key from https://aistudio.google.com/apikey
-   - `GOOGLE_PLACES_API_KEY` — from Google Cloud Console, with "Places API (New)" enabled
+   - `GOOGLE_API_KEY` 
+   - `GOOGLE_PLACES_API_KEY` 
 
 3. Run it:
 
