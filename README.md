@@ -1,4 +1,4 @@
-# Lead Finder — LangGraph Multi-Agent Outreach Tool
+# Lead Finder | LangGraph Multi-Agent Outreach Tool
 
 A multi-agent system that finds local businesses via Google Places, researches
 each one's website for a real, specific signal (outdated site, no online
@@ -82,6 +82,6 @@ than a straight-line pipeline.
 
 ## What this intentionally does NOT do (v1 scope)
 
-- Does not auto-send emails — output is a CSV of drafts for manual review.
+- Does not auto-send emails -output is a CSV of drafts for manual review.
 - Does not touch LinkedIn or Upwork.
-- Does not do bulk/high-volume sending — built for quality over volume.
+- Does not do bulk/high-volume sending - built for quality over volume.
